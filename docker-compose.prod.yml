@@ -1,0 +1,74 @@
+version: '2'
+
+services:
+  application:
+    container_name: laravel_application
+    image: alpine
+    volumes:
+      - ./:/var/www/laravel
+  workspace:
+    container_name: laravel_workspace
+    restart: always
+    build: ./docker/workspace
+    image: laravel-workspace:0.1
+    volumes_from:
+      - application
+    tty: true
+  php-fpm:
+    container_name: laravel_php-fpm
+    restart: always
+    build: ./docker/php-fpm
+    image: laravel-php-fpm:0.1
+    volumes_from:
+      - application
+    expose:
+      - "9000"
+    links:
+      - workspace
+  nginx:
+    container_name: laravel_nginx
+    restart: always
+    build: ./docker/nginx
+    image: laravel-nginx-fpm:0.1
+    volumes_from:
+      - data
+      - logs
+      - application
+    ports:
+      - "80:80"
+    links:
+      - php-fpm
+  data:
+    container_name: laravel_data
+    image: alpine
+    volumes:
+      - .docker/mysql:/var/lib/mysql
+      - .docker/data:/data
+  logs:
+    container_name: laravel_logs
+    image: alpine
+    volumes:
+      - .docker/logs/nginx:/var/log/nginx
+      - .docker/logs/mongodb:/var/log/mongodb
+  mysql:
+    container_name: laravel_mysql
+    restart: always
+    image: mysql:5.7
+    volumes_from:
+      - data
+      - logs
+    expose:
+      - "3306"
+    environment:
+      MYSQL_DATABASE: homestead
+      MYSQL_USER: homestead
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: root
+  redis:
+    container_name: laravel_redis
+    restart: always
+    image: redis
+    expose:
+      - "6379"
+    volumes_from:
+      - data
